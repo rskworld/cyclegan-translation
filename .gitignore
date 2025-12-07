@@ -38,7 +38,10 @@ results/
 
 # Datasets
 datasets/
-data/
+# Allow Python code files in data/ folder, but ignore actual data files
+data/*
+!data/__init__.py
+!data/*.py
 
 # IDE
 .vscode/
