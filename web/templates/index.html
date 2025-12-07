@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--
+    CycleGAN Web Interface
+    Author: RSK World
+    Website: https://rskworld.in
+    Email: help@rskworld.in
+    Phone: +91 93305 39277
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CycleGAN Image Translation - RSK World</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            background: #f8f9fa;
+        }
+        .upload-area.dragover {
+            background: #e9ecef;
+            border-color: #764ba2;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .preview-box {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .preview-box img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 CycleGAN Image Translation</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Click or drag and drop an image here</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        
+        <div class="controls">
+            <label>
+                <input type="radio" name="direction" value="AtoB" checked> A → B
+            </label>
+            <label>
+                <input type="radio" name="direction" value="BtoA"> B → A
+            </label>
+            <button id="translateBtn" onclick="translateImage()" disabled>Translate</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <p>Translating image... Please wait.</p>
+        </div>
+        
+        <div class="preview-container" id="previewContainer" style="display: none;">
+            <div class="preview-box">
+                <h3>Original</h3>
+                <img id="originalImg" src="" alt="Original">
+            </div>
+            <div class="preview-box">
+                <h3>Translated</h3>
+                <img id="translatedImg" src="" alt="Translated">
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>CycleGAN Image Translation by RSK World</p>
+            <p>Website: <a href="https://rskworld.in">https://rskworld.in</a></p>
+            <p>Email: help@rskworld.in | Phone: +91 93305 39277</p>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const translateBtn = document.getElementById('translateBtn');
+        const loading = document.getElementById('loading');
+        const previewContainer = document.getElementById('previewContainer');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        function handleFileSelect(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('originalImg').src = e.target.result;
+                previewContainer.style.display = 'grid';
+                translateBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function translateImage() {
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            const direction = document.querySelector('input[name="direction"]:checked').value;
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('direction', direction);
+            
+            translateBtn.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('translatedImg').src = data.image;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                translateBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
+
